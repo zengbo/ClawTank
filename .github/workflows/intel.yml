@@ -1,0 +1,43 @@
+name: Intel build
+
+# Builds, tests and packages ClawTank natively on an Intel (x86_64) macOS runner.
+# The Makefile takes ARCH from `uname -m`, so no flags are needed.
+
+on:
+  push:
+    branches: [intel-build]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test-intel:
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: core
+      - name: Install tools
+        run: brew install xcodegen
+      - name: Toolchain
+        run: uname -m && xcodebuild -version && rustc --version
+      - name: Build
+        run: make build
+      - name: Check architecture
+        run: |
+          app=app/build/Build/Products/Release/ClawTank.app/Contents/MacOS
+          lipo -archs "$app/ClawTank" "$app/clawtank-mcp"
+          [[ "$(lipo -archs "$app/ClawTank")" == x86_64 ]]
+      - name: Test
+        run: make test
+      - name: Package (unsigned)
+        run: make package
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ClawTank-x86_64-dmg
+          path: dist/*
