@@ -31,8 +31,11 @@ jobs:
       - name: Check architecture
         run: |
           app=app/build/Build/Products/Release/ClawTank.app/Contents/MacOS
-          lipo -archs "$app/ClawTank" "$app/clawtank-mcp"
-          [[ "$(lipo -archs "$app/ClawTank")" == x86_64 ]]
+          for bin in ClawTank clawtank-mcp; do
+            archs="$(lipo -archs "$app/$bin")"
+            echo "$bin: $archs"
+            [[ "$archs" == x86_64 ]]
+          done
       - name: Test
         run: make test
       - name: Package (unsigned)
